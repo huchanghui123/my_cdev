@@ -1,4 +1,4 @@
-#include<linux/init.h>
+//#include<linux/init.h>
 #include<linux/kernel.h>
 #include<linux/module.h>
 #include<linux/cdev.h>
@@ -7,6 +7,8 @@
 #include<linux/device.h>
 #include<linux/uaccess.h>
 #include<linux/ioctl.h>
+#include<linux/string.h>
+#include <asm/msr.h>
 
 /*定义设备类型*/
 #define IOC_MAGIC 'c'
@@ -41,7 +43,10 @@ ssize_t my_read(struct file *file,char __user *buf,size_t len,loff_t *pos)
 {
     if(len > 64)
         len = 64;
-    if(copy_to_user(buf,temp,len))
+    char ker_buf[200] = "Kernel say:";
+    //printk("ker_buf :%s temp:%s\n", ker_buf, temp);
+    strcat(ker_buf, temp);
+    if(copy_to_user(buf,ker_buf,strlen(ker_buf)))
         return -EFAULT;
     return len;
 }
@@ -63,6 +68,35 @@ long my_ioctl(struct file *file,unsigned int cmd,unsigned long arg)
     {
         case IOC_COMMAND1:
             printk("my ioctl command 1 successfully!\n");
+
+            u64 __val = __rdmsr(0x1A2);
+            printk("__val is %016llx\n",__val);
+            
+            u64 __val2 = __rdmsr(0x19C);
+            printk("__val2 is %016llx\n",__val2);
+
+            u8 tjunction,delta,coretemp;
+            tjunction = (__val>>16)&0x7f;
+            delta = (__val2>>16)&0x7f;
+            coretemp = tjunction - delta;
+
+            printk("tjunction is %.1d°C ;delta is %.1d°C;core temp is %.1d°C\n", tjunction, delta, coretemp);
+
+            char buf_temp[30] = "CPU温度:";
+            char core_temp[4];
+            sprintf(core_temp, "%d", coretemp);
+            strcat(buf_temp,core_temp);
+            copy_to_user((char __user *)arg, buf_temp, strlen(buf_temp));
+
+			u32 lo,hi;
+			asm volatile(
+				"rdmsr"
+				: "=a" (lo), "=d" (hi)
+				: "c" (0x1A2)
+			);
+			u64 value = ((u64)hi<<32)|lo;
+			printk("0x1a2 value :0x%016llx \n", value);
+
             break;
         case IOC_COMMAND2:
             printk("my ioctl command 2 successfully!\n");

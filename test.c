@@ -5,6 +5,7 @@
 #include<stdlib.h>
 #include<string.h>
 #include<linux/ioctl.h>
+#include <asm/msr.h>
 
 /*定义设备类型*/
 #define IOC_MAGIC 'c'
@@ -19,6 +20,7 @@
 char buf[]="我是谁？我来自哪里？人生的意义是什么？";
 char temp[64]={0};
 char *command[] = {"cmd1","cmd2"};
+char core_temp[40];
 
 void error_close(int fd,unsigned int type);
 int main(int argc, char *argv[])
@@ -51,13 +53,14 @@ int main(int argc, char *argv[])
     {
         error_close(fd,READ);               
     }
-    printf("read len=%d,temp=%s!\n",ret,temp);
+    printf("read len=%d,temp=%s\n",ret,temp);
 
-    ret = ioctl(fd,cmd,0);
+    ret = ioctl(fd,cmd,core_temp);
     if(ret == -1)
     {
         error_close(fd,IOCTL);
     }
+    printf("core temp: %s °C\n", core_temp);
     close(fd);
     return 0;
 }
