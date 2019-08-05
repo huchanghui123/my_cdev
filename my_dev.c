@@ -10,6 +10,7 @@
 #include<linux/string.h>
 #include <asm/msr.h>
 
+
 /*定义设备类型*/
 #define IOC_MAGIC 'c'
 /*读寄存器*/
